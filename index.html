@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ToolJet Utilities</title>
+  <style>
+    :root{
+      --bg:#f6f7fb;--card:#ffffff;--text:#1f2937;--muted:#6b7280;--border:#e5e7eb;
+      --primary:#6366f1;--primary-2:#8b5cf6;--radius:12px;--shadow:0 10px 30px rgba(0,0,0,.06);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    .header{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;padding:24px 20px;box-shadow:0 10px 30px rgba(99,102,241,.3)}
+    .container{max-width:1000px;margin:0 auto;padding:20px}
+    h1{font-size:1.6rem;font-weight:800}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:20px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;position:relative}
+    .card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--primary),var(--primary-2));border-top-left-radius:12px;border-bottom-left-radius:12px}
+    .title{font-size:1.1rem;font-weight:700;margin-bottom:8px}
+    .desc{color:var(--muted);font-size:.95rem;margin-bottom:14px;min-height:2.2em}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+    a.btn{display:inline-block;padding:10px 12px;background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;text-decoration:none;border-radius:10px;font-weight:700;font-size:.95rem}
+    a.btn.secondary{background:#fff;color:var(--primary);border:1px solid var(--border)}
+    footer{margin-top:24px;color:#94a3b8;font-size:.85rem}
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="container">
+      <h1>Tooljet Utilities</h1>
+    </div>
+  </div>
+  <main class="container">
+    <div class="grid">
+      <section class="card">
+        <div class="title">Metrics Dashboard</div>
+        <p class="desc">Monitor API metrics over time with charts and export options.</p>
+        <div class="actions">
+          <a class="btn" href="metric.html">Open Metrics</a>
+        </div>
+      </section>
+      <section class="card">
+        <div class="title">Logs Viewer</div>
+        <p class="desc">Browse and filter logs with a clean, focused UI.</p>
+        <div class="actions">
+          <a class="btn" href="logs-viewer.html">Open Logs</a>
+        </div>
+      </section>
+    </div>
+    <footer>
+      © <span id="y"></span> Tooljet
+    </footer>
+  </main>
+  <script>document.getElementById('y').textContent = new Date().getFullYear();</script>
+</body>
+</html>
