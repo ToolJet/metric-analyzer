@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #1e1e1e;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #61dafb;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 12px;
+            background: #2d2d2d;
+            border: 1px solid #444;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #61dafb;
+            color: #1e1e1e;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #4fc3dc;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            padding: 10px 15px;
+            background: #2d2d2d;
+            border: 1px solid #444;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #61dafb;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 2px;
+            overflow-x: auto;
+            margin-bottom: 0;
+            background: #252525;
+            padding: 10px 10px 0;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .tab {
+            padding: 12px 20px;
+            background: #2d2d2d;
+            border: none;
+            border-radius: 6px 6px 0 0;
+            cursor: pointer;
+            color: #a0a0a0;
+            font-size: 14px;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            background: #363636;
+            color: #e0e0e0;
+        }
+
+        .tab.active {
+            background: #1e1e1e;
+            color: #61dafb;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+            background: #252525;
+            padding: 20px;
+            border-radius: 0 0 8px 8px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .summary {
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .summary.status-2xx {
+            border-left-color: #4caf50;
+        }
+
+        .summary.status-3xx {
+            border-left-color: #2196f3;
+        }
+
+        .summary.status-4xx {
+            border-left-color: #ff9800;
+        }
+
+        .summary.status-5xx {
+            border-left-color: #f44336;
+        }
+
+        .summary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .summary-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #61dafb;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .status-2xx {
+            background: #4caf50;
+            color: white;
+        }
+
+        .status-3xx {
+            background: #2196f3;
+            color: white;
+        }
+
+        .status-4xx {
+            background: #ff9800;
+            color: white;
+        }
+
+        .status-5xx {
+            background: #f44336;
+            color: white;
+        }
+
+        .info-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 25px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #444;
+        }
+
+        .info-item {
+            display: flex;
+            gap: 8px;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #ffffff;
+            font-weight: 700;
+        }
+
+        .info-value {
+            font-size: 12px;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .summary-sections {
+            display: grid;
+            grid-template-columns: 640px 640px;
+            /* fixed widths for Request/Response */
+            gap: 20px;
+            align-items: stretch;
+            width: max-content;
+            /* allow horizontal scrolling when needed */
+            min-width: 1280px;
+        }
+
+        .summary-section {
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 6px;
+            /* Make inner content fill and align evenly */
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .summary-section h3 {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .json-viewer {
+            background: #0d0d0d;
+            padding: 12px;
+            border-radius: 4px;
+            overflow: auto;
+            /* both axes */
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            height: 360px;
+            /* fixed height for alignment */
+            min-height: 360px;
+            max-height: 360px;
+            white-space: pre;
+            /* preserve newlines/indentation */
+        }
+
+        /* Ensure JSON syntax colors are not overridden */
+        .json-viewer .json-key {
+            color: #ce9178 !important;
+        }
+
+        .json-viewer .json-string {
+            color: #9cdcfe !important;
+        }
+
+        .json-viewer .json-number {
+            color: #b5cea8 !important;
+        }
+
+        .json-viewer .json-boolean {
+            color: #569cd6 !important;
+        }
+
+        .json-viewer .json-null {
+            color: #569cd6 !important;
+        }
+
+        .accordion {
+            margin-bottom: 10px;
+        }
+
+        .accordion-header {
+            background: #2d2d2d;
+            padding: 12px 15px;
+            cursor: pointer;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.2s;
+            border-left: 4px solid;
+        }
+
+        .accordion-header:hover {
+            background: #363636;
+        }
+
+        .accordion-header.level-10 {
+            border-left-color: #9e9e9e;
+        }
+
+        .accordion-header.level-20 {
+            border-left-color: #9e9e9e;
+        }
+
+        .accordion-header.level-30 {
+            border-left-color: #2196f3;
+        }
+
+        .accordion-header.level-40 {
+            border-left-color: #ff9800;
+        }
+
+        .accordion-header.level-50 {
+            border-left-color: #f44336;
+        }
+
+        .accordion-header.level-60 {
+            border-left-color: #f44336;
+        }
+
+        .accordion-header.query {
+            background: #1a472a;
+            border-left-color: #4caf50;
+        }
+
+        .accordion-header.query:hover {
+            background: #1e5a33;
+        }
+
+        .accordion-header.slow-query {
+            background: #5a3a1a;
+            border-left-color: #ff9800;
+        }
+
+        .accordion-header.slow-query:hover {
+            background: #6b4620;
+        }
+
+        .query-time {
+            color: #4caf50;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+        }
+
+        .slow-query-time {
+            color: #ff9800;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+        }
+
+        .accordion-icon {
+            transition: transform 0.2s;
+            font-size: 10px;
+        }
+
+        .accordion-header.active .accordion-icon {
+            transform: rotate(90deg);
+        }
+
+        .log-level {
+            padding: 3px 10px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 600;
+            min-width: 55px;
+            text-align: center;
+        }
+
+        .level-10,
+        .level-20 {
+            background: #424242;
+            color: #bdbdbd;
+        }
+
+        .level-30 {
+            background: #1976d2;
+            color: white;
+        }
+
+        .level-40 {
+            background: #f57c00;
+            color: white;
+        }
+
+        .level-50,
+        .level-60 {
+            background: #d32f2f;
+            color: white;
+        }
+
+        .checkpoint {
+            color: #9cdcfe;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+        }
+
+        .log-time {
+            color: #e0e0e0;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            margin-left: auto;
+        }
+
+        /* Added: badge and labeled key-value styles for headers */
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .02em;
+        }
+
+        .badge-query {
+            color: #4caf50;
+            background: rgba(76, 175, 80, 0.15);
+            border: 1px solid rgba(76, 175, 80, 0.4);
+        }
+
+        /* New: console badge */
+        .badge-console {
+            color: #bdbdbd;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .muted-label {
+            color: #9e9e9e;
+            font-size: 12px;
+        }
+
+        .kv {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 8px;
+        }
+
+        .accordion-content {
+            display: none;
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 0 0 6px 6px;
+            margin-top: -6px;
+        }
+
+        .accordion-content.active {
+            display: block;
+        }
+
+        .log-message {
+            background: #0d0d0d;
+            padding: 12px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #e0e0e0;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #888;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔍 Log Visualizer</h1>
+
+        <div class="controls">
+            <textarea id="logInput" placeholder="Paste your logs here (one JSON object per line)..."></textarea>
+        </div>
+
+        <div class="controls">
+            <button onclick="parseAndDisplay()">Parse Logs</button>
+            <input type="text" class="search-box" id="searchBox" placeholder="Search by URL..." oninput="filterByUrl()">
+        </div>
+
+        <div id="tabsContainer"></div>
+        <div id="contentContainer"></div>
+    </div>
+
+    <script>
+        let parsedData = [];
+        let filteredData = [];
+
+        const levelNames = {
+            10: 'TRACE',
+            20: 'DEBUG',
+            30: 'INFO',
+            40: 'WARN',
+            50: 'ERROR',
+            60: 'FATAL'
+        };
+
+        // Create a console log object from a non-JSON line
+        function makeConsoleLog(line) {
+            const isoMatch = line.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z/);
+            const time = isoMatch ? Date.parse(isoMatch[0]) : Date.now();
+            return {
+                _type: 'console',
+                level: 30,
+                time,
+                msg: line.trim(),
+                transactionId: ''
+            };
+        }
+
+        function parseAndDisplay() {
+            const input = document.getElementById('logInput').value;
+            const lines = input.trim().split('\n');
+            const logs = [];
+            let parseErrors = [];
+
+            lines.forEach((line, index) => {
+                if (!line.trim()) return; // Skip empty lines
+
+                try {
+                    // Try to parse as-is first
+                    const log = JSON.parse(line);
+                    logs.push(log);
+                } catch (e) {
+                    // If parsing fails, try to fix common issues
+                    try {
+                        // Fix unescaped quotes in msg field and headers
+                        let fixedLine = line;
+
+                        // Find msg field and escape quotes within it
+                        const msgMatch = fixedLine.match(/"msg":"(.*?)(?:","|"}}|"$)/);
+                        if (msgMatch) {
+                            const msgContent = msgMatch[1];
+                            const fixedMsg = msgContent.replace(/"/g, '\\"');
+                            fixedLine = fixedLine.replace(
+                                `"msg":"${msgContent}"`,
+                                `"msg":"${fixedMsg}"`
+                            );
+                        }
+
+                        // Try parsing again
+                        const log = JSON.parse(fixedLine);
+                        logs.push(log);
+                        console.log(`Fixed and parsed line ${index + 1}`);
+                    } catch (e2) {
+                        // As a fallback, treat the line as a console log
+                        logs.push(makeConsoleLog(line));
+                    }
+                }
+            });
+
+            if (parseErrors.length > 0) {
+                alert('Some lines failed to parse. Check console for details.\nParsed ' + logs.length + ' logs successfully.');
+            }
+
+            if (logs.length > 0) {
+                groupLogs(logs);
+            }
+        }
+
+        function groupLogs(logs) {
+            const grouped = {};
+            const noTransaction = [];
+
+            logs.forEach(log => {
+                if (log.transactionId && log.transactionId !== '') {
+                    if (!grouped[log.transactionId]) {
+                        grouped[log.transactionId] = [];
+                    }
+                    grouped[log.transactionId].push(log);
+                } else {
+                    noTransaction.push(log);
+                }
+            });
+
+            parsedData = [];
+
+            // Process grouped transactions
+            Object.keys(grouped).forEach(transactionId => {
+                const transactionLogs = grouped[transactionId].sort((a, b) => a.time - b.time);
+                const summaryLog = transactionLogs.find(log =>
+                    log.msg === 'request completed' && log.req && log.res && log.responseTime !== undefined
+                );
+
+                const item = {
+                    transactionId,
+                    url: summaryLog?.req?.url || 'N/A',
+                    method: summaryLog?.req?.method || 'N/A',
+                    time: summaryLog?.time || transactionLogs[0]?.time || 0,
+                    statusCode: summaryLog?.res?.statusCode || 'N/A',
+                    summary: summaryLog || null,
+                    logs: transactionLogs
+                };
+
+                parsedData.push(item);
+            });
+
+            // Add no-transaction logs
+            if (noTransaction.length > 0) {
+                parsedData.push({
+                    transactionId: 'NO_TRANSACTION',
+                    url: 'N/A',
+                    method: 'N/A',
+                    time: 0,
+                    statusCode: 'N/A',
+                    summary: null,
+                    logs: noTransaction.sort((a, b) => a.time - b.time)
+                });
+            }
+
+            // Sort by time
+            parsedData.sort((a, b) => b.time - a.time);
+            filteredData = [...parsedData];
+            renderTabs();
+        }
+
+        function filterByUrl() {
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+
+            if (searchTerm === '') {
+                filteredData = [...parsedData];
+            } else {
+                filteredData = parsedData.filter(item =>
+                    item.url.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            renderTabs();
+        }
+
+        function formatJson(obj, indent = 0) {
+            const spaces = '  '.repeat(indent);
+
+            if (obj === null) {
+                return '<span class="json-null">null</span>';
+            }
+
+            if (typeof obj === 'string') {
+                return `<span class="json-string">"${escapeHtml(obj)}"</span>`;
+            }
+
+            if (typeof obj === 'number') {
+                return `<span class="json-number">${obj}</span>`;
+            }
+
+            if (typeof obj === 'boolean') {
+                return `<span class="json-boolean">${obj}</span>`;
+            }
+
+            if (Array.isArray(obj)) {
+                if (obj.length === 0) return '[]';
+                let result = '[\n';
+                obj.forEach((item, i) => {
+                    result += spaces + '  ' + formatJson(item, indent + 1);
+                    if (i < obj.length - 1) result += ',';
+                    result += '\n';
+                });
+                result += spaces + ']';
+                return result;
+            }
+
+            if (typeof obj === 'object') {
+                const keys = Object.keys(obj);
+                if (keys.length === 0) return '{}';
+                let result = '{\n';
+                keys.forEach((key, i) => {
+                    result += spaces + '  <span class="json-key">"' + escapeHtml(key) + '"</span>: ';
+                    result += formatJson(obj[key], indent + 1);
+                    if (i < keys.length - 1) result += ',';
+                    result += '\n';
+                });
+                result += spaces + '}';
+                return result;
+            }
+
+            return String(obj);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function renderTabs() {
+            const tabsContainer = document.getElementById('tabsContainer');
+            const contentContainer = document.getElementById('contentContainer');
+
+            if (filteredData.length === 0) {
+                tabsContainer.innerHTML = '';
+                contentContainer.innerHTML = '<div class="empty-state"><h3>No logs to display</h3><p>Paste logs above and click "Parse Logs"</p></div>';
+                return;
+            }
+
+            // Render tabs
+            let tabsHTML = '<div class="tabs">';
+            filteredData.forEach((item, index) => {
+                const label = item.transactionId === 'NO_TRANSACTION'
+                    ? 'No Transaction ID'
+                    : `${item.method} ${item.url}`;
+                tabsHTML += `<button class="tab ${index === 0 ? 'active' : ''}" onclick="switchTab(${index})">${label}</button>`;
+            });
+            tabsHTML += '</div>';
+            tabsContainer.innerHTML = tabsHTML;
+
+            // Render content
+            let contentHTML = '';
+            filteredData.forEach((item, index) => {
+                contentHTML += `<div class="tab-content ${index === 0 ? 'active' : ''}" id="content-${index}">`;
+
+                if (item.summary) {
+                    contentHTML += renderSummary(item);
+                }
+
+                contentHTML += '<div class="logs-list">';
+                item.logs.forEach((log, logIndex) => {
+                    contentHTML += renderLog(log, logIndex, index);
+                });
+                contentHTML += '</div>';
+
+                contentHTML += '</div>';
+            });
+            contentContainer.innerHTML = contentHTML;
+        }
+
+        function renderSummary(item) {
+            const statusClass = getStatusClass(item.statusCode);
+            const timeStr = new Date(item.time).toISOString();
+
+            return `
+                <div class="summary ${statusClass}">
+                    <div class="summary-header">
+                        <div class="summary-title">Request Summary</div>
+                        <span class="status-badge ${statusClass}">${item.statusCode} - ${item.summary.responseTime}ms</span>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-item">
+                            <div class="info-label">Transaction ID:</div>
+                            <div class="info-value">${item.transactionId}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Method:</div>
+                            <div class="info-value">${item.method}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">URL:</div>
+                            <div class="info-value">${item.url}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Response Time:</div>
+                            <div class="info-value">${item.summary.responseTime}ms</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Time:</div>
+                            <div class="info-value">${timeStr}</div>
+                        </div>
+                    </div>
+                    <div class="summary-sections">
+                        <div class="summary-section">
+                            <h3>Request</h3>
+                            <div class="json-viewer">${formatJson(item.summary.req)}</div>
+                        </div>
+                        <div class="summary-section">
+                            <h3>Response</h3>
+                            <div class="json-viewer">${formatJson(item.summary.res)}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Reworked to add QUERY badge and labeled values; fixed checkpoint ms duplication; added header id
+        function renderLog(log, logIndex, tabIndex) {
+            const isSummary = log.msg === 'request completed' && log.req && log.res;
+            if (isSummary) return ''; // Don't render summary logs again
+
+            const isConsole = log._type === 'console';
+            const isQuery = !isConsole && log.msg && log.msg.startsWith('QUERY (');
+            const isSlowQuery = !isConsole && log.msg && log.msg.startsWith('SLOW QUERY (');
+            const isDbQuery = isQuery || isSlowQuery;
+
+            // Extract time from query logs
+            let queryTime = '';
+            if (isDbQuery) {
+                const match = log.msg.match(/\((\d+)\s*ms\)/);
+                if (match) queryTime = match[1];
+            }
+
+            const levelClass = `level-${log.level || 30}`;
+            const levelName = levelNames[log.level] || 'INFO';
+
+            const checkpointVal = typeof log.checkPointer === 'number' ? log.checkPointer : null;
+            const d = new Date(log.time);
+            const dateStr = isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10); // YYYY-MM-DD
+            const timeStr = isNaN(d.getTime()) ? '' : d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 });
+            const dateTimeStr = `${dateStr}${dateStr && timeStr ? ' ' : ''}${timeStr}`;
+
+            let headerClass = levelClass;
+            if (isSlowQuery) {
+                headerClass = 'slow-query';
+            } else if (isQuery) {
+                headerClass = 'query';
+            }
+
+            let headerInner = '<span class="accordion-icon">▶</span>';
+
+            if (isDbQuery) {
+                headerInner += `<span class="badge badge-query">QUERY</span>`;
+                headerInner += `<div class="kv"><span class="muted-label">Query Time:</span><span class="${isSlowQuery ? 'slow-query-time' : 'query-time'}">${queryTime ? `${queryTime}ms` : 'N/A'}</span></div>`;
+                if (checkpointVal !== null) {
+                    headerInner += `<div class="kv"><span class="muted-label">Checkpoint:</span><span class="checkpoint">${checkpointVal}ms</span></div>`;
+                }
+                headerInner += `<span class="log-time">${dateTimeStr}</span>`;
+            } else if (isConsole) {
+                headerInner += `<span class="badge badge-console">CONSOLE</span>`;
+                headerInner += `<span class="log-time">${dateTimeStr}</span>`;
+            } else {
+                headerInner += `<span class="log-level ${levelClass}">${levelName}</span>`;
+                if (checkpointVal !== null) {
+                    headerInner += `<div class="kv"><span class="muted-label">Checkpoint:</span><span class="checkpoint">${checkpointVal}ms</span></div>`;
+                }
+                headerInner += `<span class="log-time">${dateTimeStr}</span>`;
+            }
+
+            return `
+                <div class="accordion">
+                    <div class="accordion-header ${headerClass}" id="header-${tabIndex}-${logIndex}" onclick="toggleAccordion(${tabIndex}, ${logIndex})">
+                        ${headerInner}
+                    </div>
+                    <div class="accordion-content" id="accordion-${tabIndex}-${logIndex}">
+                        ${log.msg ? `<div class="log-message">${escapeHtml(log.msg)}</div>` : '<div class="log-message">No message</div>'}
+                    </div>
+                </div>
+            `;
+        }
+
+        function getStatusClass(statusCode) {
+            if (statusCode === 'N/A') return '';
+            const code = parseInt(statusCode);
+            if (code >= 200 && code < 300) return 'status-2xx';
+            if (code >= 300 && code < 400) return 'status-3xx';
+            if (code >= 400 && code < 500) return 'status-4xx';
+            if (code >= 500) return 'status-5xx';
+            return '';
+        }
+
+        function switchTab(index) {
+            // Update tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach((tab, i) => {
+                tab.classList.toggle('active', i === index);
+            });
+
+            // Update content
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach((content, i) => {
+                content.classList.toggle('active', i === index);
+            });
+        }
+
+        // Updated to target header/content via ids for correctness when some logs are skipped
+        function toggleAccordion(tabIndex, logIndex) {
+            const header = document.getElementById(`header-${tabIndex}-${logIndex}`);
+            const content = document.getElementById(`accordion-${tabIndex}-${logIndex}`);
+
+            if (!header || !content) return;
+
+            header.classList.toggle('active');
+            content.classList.toggle('active');
+        }
+
+        // Sample data for testing
+        const sampleLogs = `{"level":30,"time":1759244613542,"pid":4804,"hostname":"MacBook-Pro-7.local","route":"[GET] /api/metrics","transactionId":"576624537168808","checkPointer":3,"msg":"[AbilityGuard] canActivate execution time: 0ms - Result: Success"}
+{"level":30,"time":1759244613546,"pid":4804,"hostname":"MacBook-Pro-7.local","req":{"id":271,"method":"GET","url":"/api/metrics","query":{},"params":{"path":["metrics"]},"headers":{"accept":"application/json","user-agent":"PostmanRuntime/7.39.1","cache-control":"no-cache","postman-token":"f5e54de4-2a17-4d4d-aac1-a1dddee7fa1c","host":"localhost:3000","accept-encoding":"gzip, deflate, br","connection":"keep-alive","cookie":"[REDACTED]"},"remoteAddress":"::1","remotePort":59356},"transactionId":"576624537168808","res":{"statusCode":200,"headers":{"vary":"Origin, Accept-Encoding","access-control-allow-credentials":"true","content-security-policy":"img-src * data: blob:;script-src maps.googleapis.com storage.googleapis.com apis.google.com accounts.google.com 'self' 'unsafe-inline' 'unsafe-eval' blob: https://unpkg.com/@babel/standalone@7.17.9/babel.min.js https://unpkg.com/react@16.7.0/umd/react.production.min.js https://unpkg.com/react-dom@16.7.0/umd/react-dom.production.min.js cdn.skypack.dev cdn.jsdelivr.net https://esm.sh www.googletagmanager.com;object-src 'self' data:;media-src 'self' data:;default-src maps.googleapis.com storage.googleapis.com apis.google.com accounts.google.com *.sentry.io 'self' blob: www.googletagmanager.com;connect-src ws://localhost 'self' * data:;frame-ancestors *;frame-src *;base-uri 'self';font-src 'self' https: data:;form-action 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline'","cross-origin-opener-policy":"same-origin","cross-origin-resource-policy":"same-origin","origin-agent-cluster":"?1","referrer-policy":"no-referrer","strict-transport-security":"max-age=31536000; includeSubDomains","x-content-type-options":"nosniff","x-dns-prefetch-control":"off","x-download-options":"noopen","x-frame-options":"DENY","x-permitted-cross-domain-policies":"none","x-xss-protection":"0","permissions-policy":"geolocation=(self), camera=(), microphone=()","x-powered-by":"ToolJet","cache-control":"no-cache, no-store, must-revalidate","content-type":"application/json; charset=utf-8","content-length":"284","etag":"W/\\"11c-nGtNYoRbcWE2i4rLq+DGzwvGzn8\\""}},"responseTime":8,"msg":"request completed"}`;
+
+        document.getElementById('logInput').value = sampleLogs;
+        parseAndDisplay();
+    </script>
+</body>
+
+</html>
